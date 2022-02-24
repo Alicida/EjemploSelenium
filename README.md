@@ -1,7 +1,2 @@
-# SpiderM
-Arañita de M
-
-
-Se debe modificar la ruta del chromedriver primero.
-
-Además de sustutuir el chromedriver por la versión necesaria en cada caso.
+# Spider usando Python y Selenium
+Script sencillo usando Selenium que genera un archivo xlsx

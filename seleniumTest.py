@@ -1,64 +1,55 @@
 from selenium import webdriver
-from pprint import pprint
+from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.common.by import By
+from webdriver_manager.firefox import GeckoDriverManager
 import xlsxwriter
 import time
-driver = webdriver.Chrome(executable_path=r'../chromedriver.exe')
-driver.get("https://www.tienda.movistar.com.mx/telefonos.html")
-totalTelefonos = int(driver.find_element_by_xpath('//*[@id="toolbar-amount"]/span[3]').text)
-telefonos = 0
-arrayPhones = []
-while telefonos != totalTelefonos:
-    phones = driver.find_elements_by_class_name("grid__slot2")
-    for phone in phones:
-        array = {}
-        array['nombre'] = phone.find_element_by_class_name("grid__title").text
-        array['sku'] = phone.find_element_by_class_name("grid__ref").text
-        gridvalueprice = phone.find_element_by_class_name("grid__value-price")
-        children = gridvalueprice.find_element_by_xpath(".//*").text
-        precioPospago = children
-        array['precioPospago'] = round(float(precioPospago.replace("$", "")),2)*2*24
-        array['precioPrepago'] = phone.find_element_by_class_name("price-wrapper").text;
-        array['imagen'] = phone.find_element_by_class_name("grid__img").get_attribute('src')
-        array['url'] = phone.find_element_by_class_name("grid__action").get_attribute('href')
-        arrayPhones.append(array)
-    telefonos += len(phones)
-    paginador = driver.find_element_by_class_name('vass-page-numbers')
-    paginas = paginador.find_elements_by_tag_name("li")
-    bandera = 0
-    for pagina in paginas:
-        if bandera == 0:
-            paginaclassname = pagina.get_attribute("class")
-            if paginaclassname == 'item current':
-                bandera = 1
-        else:
-            link = pagina.find_element_by_xpath(".//*")
-            link.get_attribute('href')
-            driver.get(link.get_attribute('href'))
-            print('ya le dio clic')
-            time.sleep(10)
-            break
-    print(telefonos)
-    print(totalTelefonos)
 
-workbook = xlsxwriter.Workbook('reporteTienda.xlsx')
+driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
+# driver iniciará un navegador y abriá la url raíz.
+driver.get("https://alicidafreak.blogspot.com/")
+
+entradas = []
+paginadorExiste = True
+
+while paginadorExiste:
+
+    # La variable de paso ents pretende ser una abreviación de entradas.
+    ents = driver.find_elements(By.TAG_NAME, 'article')
+
+    for ent in ents:
+        entrada = {}
+        entrada['fecha'] = ent.find_element(By.CLASS_NAME, 'published').text
+        entrada['comentarios'] = ent.find_element(By.CLASS_NAME, 'num_comments').text
+        contenedor = ent.find_element(By.CLASS_NAME, 'entry-title')
+        entrada['titulo'] = contenedor.find_element(By.CLASS_NAME, 'r-snippetized').text        
+        entrada['url'] = contenedor.find_element(By.TAG_NAME, 'a').get_attribute('href')
+        entradas.append(entrada)
+    
+    if len(driver.find_elements(By.CLASS_NAME, 'blog-pager-older-link')) > 0:
+        paginador=driver.find_element(By.CLASS_NAME, 'blog-pager-older-link')
+        paginador.get_attribute('href')
+        driver.get(paginador.get_attribute('href'))
+        time.sleep(5)
+    else:
+        paginadorExiste = False
+
+workbook = xlsxwriter.Workbook('data.xlsx')
 worksheet = workbook.add_worksheet()
-worksheet.write('A1', 'Nombre')
-worksheet.write('B1', 'SKU')
-worksheet.write('C1', 'Precio Pospago')
-worksheet.write('D1', 'Precio Prepago')
-worksheet.write('E1', 'Imagen')
-worksheet.write('F1', 'Url')
+worksheet.write('A1', 'Título')
+worksheet.write('B1', 'No. Comentarios')
+worksheet.write('C1', 'Fecha Publicación')
+worksheet.write('D1', 'URL Directa')
 col = 0
 row = 1
-for x in arrayPhones:
-    worksheet.write(row, col, x['nombre'])
-    worksheet.write(row, col + 1, x['sku'])
-    worksheet.write(row, col + 2, x['precioPospago'])
-    worksheet.write(row, col + 3, x['precioPrepago'])
-    worksheet.write(row, col + 4, x['imagen'])
-    worksheet.write(row, col + 5, x['url'])
+
+for e in entradas:
+    worksheet.write(row, col, e['titulo'])
+    worksheet.write(row, col + 1, e['comentarios'])
+    worksheet.write(row, col + 2, e['fecha'])
+    worksheet.write(row, col + 3, e['url'])
     row += 1
-    print ('Nombre: '+x['nombre']+', SKU: '+x['sku']+', Pospago: $'+str(x['precioPospago'])+', Prepago: '+x['precioPrepago'])
+
 workbook.close()
 
 driver.quit()

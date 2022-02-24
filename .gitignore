@@ -1,0 +1,11 @@
+# Environments
+.env
+env/
+ENV/
+env.bak/
+
+# Geckodriver
+geckodriver.log
+
+# Xlsx
+data.xlsx
